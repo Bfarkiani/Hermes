@@ -1,0 +1,66 @@
+static_resources:
+  listeners:
+    - name: server1_HTTP
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: server1_HTTP
+                access_log:
+                - name: envoy.access_loggers.stdout
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog                
+                route_config:              
+                  name: remote_route
+                  virtual_hosts:
+                    - name: connect
+                      domains: ["*"]
+                      routes:                      
+                        - match:
+                            connect_matcher: {}
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: server
+                        - match:
+                            prefix: "/"                          
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: server
+
+                http2_protocol_options:
+                  allow_connect: true
+                http_filters:
+                  - name: envoy.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                http2_protocol_options:
+                  allow_connect: true
+                upgrade_configs:
+                - upgrade_type: CONNECT                      
+         
+
+  clusters:         
+
+  - name: server
+    connect_timeout: 5s
+    type: LOGICAL_DNS
+    load_assignment:
+      cluster_name: server
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: host.docker.internal
+                port_value: 80 

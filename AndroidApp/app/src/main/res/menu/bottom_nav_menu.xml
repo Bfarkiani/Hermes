@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+<item
+    android:id="@+id/settingFragment"
+    android:title="Setting"
+    android:icon="@drawable/setting"
+    />
+    <item
+        android:id="@+id/logFragment"
+        android:title="Log"
+        android:icon="@drawable/log"
+        />
+</menu>

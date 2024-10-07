@@ -1,0 +1,143 @@
+static_resources:
+  listeners:
+  - name: listener_ndn
+    address:
+      socket_address:
+        protocol: TCP
+        address: 0.0.0.0
+        port_value: 7000
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: listener_ndn
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog                
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains:
+              - "*"
+              routes:
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "namespace"
+                    exact_match: "ONL"                  
+                route:                            
+                  timeout: 0s
+                  idle_timeout: 0s
+                  max_stream_duration:
+                    max_stream_duration: 0s                          
+                  cluster: service_NDN_ONL   
+#                  upgrade_configs:
+#                  - upgrade_type: CONNECT-UDP
+#                    connect_config: {}                    
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "namespace"
+                    exact_match: "ARL"                  
+                route:                            
+                  timeout: 0s
+                  idle_timeout: 0s
+                  max_stream_duration:
+                    max_stream_duration: 0s                          
+                  cluster: service_NDN_ARL   
+#                  upgrade_configs:
+#                  - upgrade_type: CONNECT-UDP
+#                    connect_config: {}      
+                    
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "namespace"
+                    exact_match: "ONL"                  
+
+                route:
+                  timeout: 0s
+                  idle_timeout: 0s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  cluster: service_NDN_ONL
+#                  upgrade_configs:
+#                  - upgrade_type: CONNECT-UDP
+#                    connect_config: {}
+
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "namespace"
+                    exact_match: "ARL"                  
+
+                route:
+                  timeout: 0s
+                  idle_timeout: 0s
+                  max_stream_duration:
+                    max_stream_duration: 0s
+                  cluster: service_NDN_ARL
+#                  upgrade_configs:
+#                  - upgrade_type: CONNECT-UDP
+#                    connect_config: {}
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          http2_protocol_options:
+            allow_connect: true
+          upgrade_configs:
+          - upgrade_type: CONNECT-UDP
+
+
+  clusters:         
+
+  - name: service_NDN_ONL
+    connect_timeout: 5s
+#    upstream_bind_config:
+#      source_address:
+#        address: 192.168.8.1
+#        port_value: 12000
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: service_NDN_ONL
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address:  192.168.9.1 #192.168.170.132 -->VMWare bug, it doesn't work  
+                port_value: 7000 #9999  
+        - endpoint:
+            address:
+              socket_address:
+                address:  192.168.9.2 #192.168.170.132 -->VMWare bug, it doesn't work  
+                port_value: 7000 #9999  
+
+
+  - name: service_NDN_ARL
+    connect_timeout: 5s
+#    upstream_bind_config:
+#      source_address:
+#        address: 192.168.8.1
+#        port_value: 13000
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: service_NDN_ARL
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address:  192.168.4.1 #192.168.170.132 -->VMWare bug, it doesn't work  
+                port_value: 7000 #9999                
+        - endpoint:
+            address:
+              socket_address:
+                address:  192.168.4.2 #192.168.170.132 -->VMWare bug, it doesn't work  
+                port_value: 7000 #9999                 

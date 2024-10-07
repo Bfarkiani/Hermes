@@ -1,0 +1,118 @@
+static_resources:         
+  listeners:
+
+    - name: client_ndn_ONL
+    #requests goes in the form of onl/org/video/xxx
+      address:
+        socket_address:
+          protocol: UDP
+          address: 0.0.0.0
+          port_value: 12000
+      udp_listener_config:
+        downstream_socket_config:
+          max_rx_datagram_size: 9000
+      listener_filters:
+      - name: envoy.filters.udp_listener.udp_proxy
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
+          stat_prefix: client_ndn_ONL
+          matcher:
+            on_no_match:
+              action:
+                name: route
+                typed_config:
+                  '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
+                  cluster: ingress_HTTP
+          upstream_socket_config:
+            max_rx_datagram_size: 9000
+          session_filters:
+          - name: envoy.filters.udp.session.http_capsule
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.session.http_capsule.v3.FilterConfig
+          tunneling_config:
+            proxy_host: proxy.host.com
+            target_host: target.host.com
+            default_target_port: 7000
+            #use_post: true
+            #post_path: "/"
+            retry_options:
+              max_connect_attempts: 3
+            buffer_options:
+              max_buffered_datagrams: 10240
+              max_buffered_bytes: 163840
+            headers_to_add:
+            - header:
+                key: service
+                value: "NDN"
+            - header:
+                key: namespace
+                value: "ONL"                
+
+    - name: client_ndn_ARL
+    #requests goes in the form of onl/org/video/xxx
+      address:
+        socket_address:
+          protocol: UDP
+          address: 0.0.0.0
+          port_value: 13000
+      udp_listener_config:
+        downstream_socket_config:
+          max_rx_datagram_size: 9000
+      listener_filters:
+      - name: envoy.filters.udp_listener.udp_proxy
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
+          stat_prefix: client_ndn_ARL
+          matcher:
+            on_no_match:
+              action:
+                name: route
+                typed_config:
+                  '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
+                  cluster: ingress_HTTP
+          upstream_socket_config:
+            max_rx_datagram_size: 9000
+          session_filters:
+          - name: envoy.filters.udp.session.http_capsule
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.session.http_capsule.v3.FilterConfig
+          tunneling_config:
+            proxy_host: proxy.host.com
+            target_host: target.host.com
+            default_target_port: 7000
+            #use_post: true
+            #post_path: "/"
+            retry_options:
+              max_connect_attempts: 3
+            buffer_options:
+              max_buffered_datagrams: 10240
+              max_buffered_bytes: 163840
+            headers_to_add:
+            - header:
+                key: service
+                value: "NDN"
+            - header:
+                key: namespace
+                value: "ARL"                
+
+
+  clusters:         
+  - name: ingress_HTTP
+    connect_timeout: 5s
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+    load_assignment:
+      cluster_name: ingress_HTTP
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.7.1
+                port_value: 7000          
+
+
+

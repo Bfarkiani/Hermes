@@ -1,0 +1,19 @@
+on h13
+ndncatchunks -p fixed -s 20  /onl/testfiles/1mb.txt 
+
+on h14
+ndncatchunks -p fixed -s 20  /arl/testfiles/1mb.txt 
+
+
+
+on h4x2
+
+nfdc face create udp4://192.168.14.1:6362 persistency permanent 
+nfdc route add /arl udp4://192.168.14.1:6362
+
+
+
+
+on h14x1
+nfdc face create udp4://192.168.4.2:6362 persistency permanent
+nfdc route add /arl udp4://192.168.4.2:6362

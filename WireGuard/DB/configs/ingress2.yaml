@@ -1,0 +1,183 @@
+static_resources:
+  listeners:
+  - name: Incoming
+    address:
+      socket_address:
+        protocol: TCP
+        address: 0.0.0.0
+        port_value: 10000
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog            
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: local_service
+              domains:
+              - "*"
+              routes:
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
+                    exact_match: "10.0.0.1"                      
+                route:                            
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                          
+                  cluster: server3   
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}                 
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
+                    exact_match: "10.0.0.1"                    
+                route:
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                                          
+                  cluster: server3
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
+                    exact_match: "10.0.0.2"                      
+                route:                            
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                          
+                  cluster: server2   
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}                 
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
+                    exact_match: "10.0.0.2"                    
+                route:
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                                          
+                  cluster: server2
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}    
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "IPaddress"
+                    exact_match: "128.252.0.0"                      
+                route:                            
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                          
+                  cluster: server4  
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}                 
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "IPaddress"
+                    exact_match: "128.252.0.0"                    
+                route:
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                                          
+                  cluster: server4
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}
+                    
+          http_filters:
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+          http2_protocol_options:
+            allow_connect: true
+          upgrade_configs:
+          - upgrade_type: CONNECT-UDP
+
+         
+  clusters:
+  - name: server3
+    connect_timeout: 5s
+    common_lb_config: 
+      close_connections_on_host_set_change: true
+    type: LOGICAL_DNS
+    dns_lookup_family: V4_ONLY
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: server3
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                protocol: UDP
+                address:  host.docker.internal
+                port_value: 51820         
+
+
+  - name: server2
+    connect_timeout: 5s
+    common_lb_config: 
+      close_connections_on_host_set_change: true
+    type: STATIC
+    dns_lookup_family: V4_ONLY   
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: server2
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                protocol: UDP
+                address:  192.168.1.2 
+                port_value: 51820 
+
+  - name: server4
+    connect_timeout: 5s
+    common_lb_config: 
+      close_connections_on_host_set_change: true
+    type: STATIC
+    dns_lookup_family: V4_ONLY   
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: server4
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                protocol: UDP
+                address:  192.168.1.1 
+                port_value: 51820 

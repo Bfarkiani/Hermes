@@ -1,0 +1,74 @@
+static_resources:
+  listeners:
+    - name: listener_HTTP
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 12000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: listener_HTTP
+                access_log:
+                - name: envoy.access_loggers.stdout
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog                
+                route_config:              
+                  name: remote_route
+                  virtual_hosts:
+                    - name: connect
+                      domains: ["*"]
+                      routes:                      
+                        - match:
+                            connect_matcher: {}
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+
+                            cluster: ingress
+                        - match:
+                            prefix: "/"                          
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+
+                            cluster: ingress
+
+                http_filters:
+                  - name: envoy.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                http2_protocol_options:
+                  allow_connect: true
+                upgrade_configs:
+                - upgrade_type: CONNECT                      
+         
+
+  clusters:         
+
+  - name: ingress
+    connect_timeout: 5s  
+    type: STATIC
+    load_assignment:
+      cluster_name: ingress
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.7.1
+                port_value: 10000 
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_3
+            tls_maximum_protocol_version: TLSv1_3

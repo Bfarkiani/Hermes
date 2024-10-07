@@ -1,0 +1,29 @@
+services:
+  OPA:
+    image: openpolicyagent/opa:0.60.0-envoy-1-rootless
+    command:
+    - "run"
+    - "--server"
+    - "--addr=localhost:8181"
+    - "--diagnostic-addr=0.0.0.0:8282"
+    - "--log-level=debug"
+    - "--log-format=json-pretty"
+#    - "--set=services.default.url=http://bundle-server"
+#    - "--set=bundles.default.resource=bundle.tar.gz"
+    - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
+    - "--set=plugins.envoy_ext_authz_grpc.path=envoy/authz/allow"
+    - "--set=decision_logs.console=true"
+    #- "--set=status.console=true"
+    - "/etc/policy_http.rego"
+
+    container_name: OPA
+    volumes:
+      - "./policy_http.rego:/etc/policy_http.rego"
+    ports:
+      - "8282:8282"
+      - "8181:8181"      
+      - "9191:9191"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN    
+      - ALL

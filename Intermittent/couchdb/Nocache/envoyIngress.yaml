@@ -1,0 +1,179 @@
+static_resources:
+
+  listeners:
+    - name: listener_first
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 18080
+      filter_chains:
+#        - transport_socket:
+#            name: envoy.transport_sockets.tls
+#            typed_config:
+#              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+#              common_tls_context:
+#                tls_certificates:
+#                  - certificate_chain:
+#                      filename: "/etc/envoy/nginx-certificate.crt"
+#                    private_key:
+#                      filename: "/etc/envoy/nginx-private.key"
+#                alpn_protocols: ["h2,http/1.1"]
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: listener_first
+                access_log:
+                  - name: envoy.access_loggers.stdout
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                route_config:
+                  name: remote_route
+                  virtual_hosts:
+                    - name: connect
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            connect_matcher: {}
+                            headers: 
+                              - name: ":authority"
+                                safe_regex_match:
+                                  google_re2: {}
+                                  regex: "^(www.)?onl(:[0-9]*)?"                                  
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: unstable
+                        - match:
+                            connect_matcher: {}
+                            headers: 
+                              - name: ":authority"
+                                safe_regex_match:
+                                  google_re2: {}
+                                  regex: "onl(:[0-9]*)?"
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: unstable                     
+                        - match:
+                            prefix: "/unstable"
+                            headers:
+                              - name: ":authority"
+                                safe_regex_match:
+                                  google_re2: {}
+                                  regex: "onl(:[0-9]*)?"
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: unstable
+                        - match:
+                            prefix: "/unstable"
+                            headers:
+                              - name: ":authority"
+                                safe_regex_match:
+                                  google_re2: {}
+                                  regex: "^(www.)?onl.com(:[0-9]*)?"
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: unstable
+
+                        - match:
+                            connect_matcher: {}
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: cluster_proxy
+                            upgrade_configs:
+                              - upgrade_type: CONNECT
+                                connect_config: {}
+                        - match:
+                            prefix: "/"                        
+                          route:
+                            timeout: 0s
+                            idle_timeout: 0s
+                            max_stream_duration:
+                              max_stream_duration: 0s
+                            cluster: cluster_proxy                                
+
+
+                http_filters:
+                  - name: envoy.filters.http.dynamic_forward_proxy
+                    typed_config:
+                      '@type': type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+                      dns_cache_config:
+                        name: dynamic_forward_proxy_cache_config
+                        dns_lookup_family: ALL
+                        typed_dns_resolver_config:
+                          name: envoy.network.dns_resolver.cares
+                          typed_config:
+                            "@type": type.googleapis.com/envoy.extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig
+                            resolvers:
+                              - socket_address:
+                                  address: "8.8.8.8"
+                                  port_value: 53
+                            dns_resolver_options:
+                              use_tcp_for_dns_lookups: true
+                              no_default_search_domain: true
+                  - name: envoy.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                http_protocol_options: {}
+#                http2_protocol_options:
+#                   allow_connect: true
+                upgrade_configs:
+                  - upgrade_type: CONNECT
+
+
+  clusters:
+    - name: cluster_proxy
+      lb_policy: CLUSTER_PROVIDED
+      original_dst_lb_config:
+        use_http_header: true
+      connect_timeout: 5s
+      cluster_type:
+        name: envoy.clusters.dynamic_forward_proxy
+        typed_config:
+          '@type': type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+          dns_cache_config:
+            name: dynamic_forward_proxy_cache_config
+            dns_lookup_family: ALL
+            typed_dns_resolver_config:
+              name: envoy.network.dns_resolver.cares
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.network.dns_resolver.cares.v3.CaresDnsResolverConfig
+                resolvers:
+                - socket_address:
+                    address: "8.8.8.8"
+                    port_value: 53
+                dns_resolver_options:
+                  use_tcp_for_dns_lookups: true
+                  no_default_search_domain: true
+
+    - name: unstable
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+#      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: unstable
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 192.168.13.1
+                      port_value: 18080
+#      transport_socket:
+#        name: envoy.transport_sockets.tls
+#        typed_config:
+#          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext

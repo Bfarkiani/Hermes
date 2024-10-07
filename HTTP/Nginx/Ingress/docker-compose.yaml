@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  IngressNginx:
+    image: patrikjuvonen/docker-nginx-http3:2.1.4
+    ports:
+      - 10001:443/udp
+      - 10001:443/tcp
+    restart: on-failure
+    volumes:
+      - ./conf/default.conf:/etc/nginx/conf.d/default.conf
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./cert/:/etc/nginx/ssl/:ro      

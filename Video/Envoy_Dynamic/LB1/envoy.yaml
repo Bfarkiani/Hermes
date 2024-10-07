@@ -1,0 +1,65 @@
+node:
+  cluster: test
+  id: envoyLB1
+  metadata:
+    secretKey: VIDEO
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9001
+    
+dynamic_resources:
+  ads_config:
+    api_type: GRPC
+    transport_api_version: V3
+    grpc_services:
+    - envoy_grpc:
+        cluster_name: xds_cluster
+  cds_config:
+    resource_api_version: V3
+    ads: {}
+    initial_fetch_timeout: 300s
+  lds_config:
+    resource_api_version: V3
+    ads: {}
+    initial_fetch_timeout: 300s
+      
+static_resources:
+
+  clusters:         
+
+  - name: xds_cluster
+    connect_timeout: 5s
+    type: strict_dns
+    lb_policy: ROUND_ROBIN
+    http2_protocol_options: {}
+    upstream_connection_options:
+      tcp_keepalive: {}
+    load_assignment:
+      cluster_name: xds_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.6.1
+                port_value: 18000 # can be overridden with "--xds-port"
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_3
+            tls_maximum_protocol_version: TLSv1_3
+          validation_context:
+            trusted_ca: { filename: "/etc/envoy/controller.crt" }            
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options:
+            connection_keepalive:
+              interval: 30s
+              timeout: 5s

@@ -1,0 +1,52 @@
+static_resources:
+  listeners:
+    - name: local_tcp
+      address:
+        socket_address:
+          protocol: TCP      
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+      - filters:
+        - name: envoy.filters.network.tcp_proxy
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+            max_connect_attempts: 10 
+            stat_prefix: local_tcp
+            cluster: ingress
+            tunneling_config:
+              hostname: onl
+              use_post: true       
+              post_path: "/org/db/"
+              headers_to_add:
+              - header: 
+                  key: "clientip"
+                  value: "%DOWNSTREAM_DIRECT_REMOTE_ADDRESS_WITHOUT_PORT%"            
+
+  clusters:         
+
+  - name: ingress
+    connect_timeout: 5s
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}    
+    type: STATIC
+    load_assignment:
+      cluster_name: ingress
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.7.1
+                port_value: 10000 
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_3
+            tls_maximum_protocol_version: TLSv1_3

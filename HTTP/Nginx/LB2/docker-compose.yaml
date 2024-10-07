@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  LB2Nginx:
+    image: patrikjuvonen/docker-nginx-http3:2.1.4
+    ports:
+      - 10001:80
+    restart: on-failure
+    volumes:
+      - ./conf/default.conf:/etc/nginx/conf.d/default.conf
+      - ./conf/nginx.conf:/etc/nginx/nginx.conf

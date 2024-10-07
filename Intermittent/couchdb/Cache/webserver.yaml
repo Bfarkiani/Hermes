@@ -1,0 +1,79 @@
+static_resources:
+  listeners:
+  - name: listener_nginx1
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 18080
+    filter_chains:
+    - transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+          common_tls_context:
+            tls_certificates:
+              - certificate_chain:
+                  filename: "/etc/envoy/nginx-certificate.crt"
+                private_key:
+                  filename: "/etc/envoy/nginx-private.key"
+            alpn_protocols: ["h2,http/1.1"]
+      filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          access_log:
+          - name: envoy.access_loggers.stdout
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          codec_type: AUTO
+          stat_prefix: l_nginx_http1_unreliable
+          http_protocol_options:
+            allow_chunked_length: true
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: backend
+              domains:
+              - "*"
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                #return 503 after 12m                
+                  timeout: 0s
+                  idle_timeout: 0s
+                  retry_policy:
+                      retry_on: 5xx,refused-stream,connect-failure,gateway-error,reset
+                      num_retries: 2
+                      per_try_timeout: 25s                
+                  cluster: nginx_srvr_http1_unreliable
+          http_filters:
+          - name: "envoy.filters.http.cache"
+            typed_config:
+              "@type": "type.googleapis.com/envoy.extensions.filters.http.cache.v3.CacheConfig"
+              typed_config:
+                "@type": "type.googleapis.com/envoy.extensions.http.cache.simple_http_cache.v3.SimpleHttpCacheConfig"
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+  - name: nginx_srvr_http1_unreliable
+    #connect_timeout: 5s
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+#    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: nginx_srvr_http1_unreliable
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 192.168.5.1
+                port_value: 8443
+                # port_value: 8880
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
