@@ -1,7 +1,7 @@
 package main
 
 import (
-	"WireGuard/utils"
+	"Tunnel/utils"
 	"bytes"
 	"flag"
 	"fmt"
@@ -26,7 +26,7 @@ func check(e error) {
 func main() {
 	var wg sync.WaitGroup
 
-	dbAddress := flag.String("dbaddress", "192.168.1.1", "CouchDB address")
+	dbAddress := flag.String("dbaddress", "DB IP", "CouchDB address")
 	dbPort := flag.String("dbport", "5984", "CouchDB port")
 	pingAddress := flag.String("pingaddress", "10.0.0.1", "address to ping")
 	pinger := flag.Bool("pinger", false, "is this a databse updater instance?")
@@ -39,6 +39,7 @@ func main() {
 			panic(err)
 		}
 
+		// Listen for Ctrl-C.
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		p.SetPrivileged(true)
@@ -90,11 +91,19 @@ func main() {
 		fmt.Println("Hit CTRL-C to stop")
 	}
 
+	///	pushing data into DB
 	couchDB, err := utils.NewConnectionCouchDB("ONL", "123456", *dbAddress, *dbPort)
 	if err != nil {
 		log.Fatal("Failed to connect to CouchDB")
 	}
-
+	//err = couchDB.InitializeDB("users") //
+	//if err != nil {
+	//	log.Fatal("Failed to initialize Users DB")
+	//}
+	//k := make(map[string]string) //
+	//k["test"] = "test"
+	//out, _ := yaml.Marshal(k)
+	//err = couchDB.UpdateDB("users", out, "secrets")
 
 	var dbFunction func(string, fs.DirEntry, error) error
 	dbFunction = func(path string, d fs.DirEntry, err error) error {

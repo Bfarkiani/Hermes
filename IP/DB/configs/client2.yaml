@@ -11,24 +11,23 @@ static_resources:
       typed_config:
         '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
         stat_prefix: foo
-        idle_timeout: 10s       
         matcher:
           on_no_match:
             action:
               name: route
               typed_config:
                 '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
-                cluster: cluster_0
+                cluster: cluster_http
         session_filters:
         - name: envoy.filters.udp.session.http_capsule
           typed_config:
             '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.session.http_capsule.v3.FilterConfig
         tunneling_config:
-          proxy_host: client10
-          target_host: server40
-          default_target_port: 443
+          proxy_host: user2
+          target_host: server1
           retry_options:
             max_connect_attempts: 2
+          default_target_port: 443
           buffer_options:
             max_buffered_datagrams: 1024
             max_buffered_bytes: 16384
@@ -39,6 +38,7 @@ static_resources:
           - header:
               key: IPaddress
               value: "10.0.0.1"
+              
   - name: listener_1
     address:
       socket_address:
@@ -50,35 +50,33 @@ static_resources:
       typed_config:
         '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
         stat_prefix: foo
-        idle_timeout: 10s       
         matcher:
           on_no_match:
             action:
               name: route
               typed_config:
                 '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
-                cluster: cluster_0
+                cluster: cluster_http
         session_filters:
         - name: envoy.filters.udp.session.http_capsule
           typed_config:
             '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.session.http_capsule.v3.FilterConfig
         tunneling_config:
-          proxy_host: client11
-          target_host: server41
-          default_target_port: 443
+          proxy_host: user2
+          target_host: server2
           retry_options:
             max_connect_attempts: 2
+          default_target_port: 443
           buffer_options:
             max_buffered_datagrams: 1024
             max_buffered_bytes: 16384
-          headers_to_add:
+          headers_to_add:           
           - header:
               key: user
               value: "user2"
           - header:
               key: IPaddress
-              value: "10.0.0.2" 
-
+              value: "10.0.0.2"            
 
   - name: listener_2
     address:
@@ -91,24 +89,23 @@ static_resources:
       typed_config:
         '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.UdpProxyConfig
         stat_prefix: foo
-        idle_timeout: 10s
         matcher:
           on_no_match:
             action:
               name: route
               typed_config:
                 '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.v3.Route
-                cluster: cluster_0
+                cluster: cluster_http
         session_filters:
         - name: envoy.filters.udp.session.http_capsule
           typed_config:
             '@type': type.googleapis.com/envoy.extensions.filters.udp.udp_proxy.session.http_capsule.v3.FilterConfig
         tunneling_config:
-          proxy_host: client12
-          target_host: server42
-          default_target_port: 443
+          proxy_host: user2
+          target_host: server3
           retry_options:
             max_connect_attempts: 2
+          default_target_port: 443
           buffer_options:
             max_buffered_datagrams: 1024
             max_buffered_bytes: 16384
@@ -118,78 +115,10 @@ static_resources:
               value: "user2"
           - header:
               key: IPaddress
-              value: "128.252.0.0" 
-
-  - name: listener_HTTP
-    address:
-      socket_address:
-        address: 0.0.0.0
-        port_value: 12000
-    filter_chains:
-      - filters:
-          - name: envoy.filters.network.http_connection_manager
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-              stat_prefix: listener_HTTP
-              access_log:
-              - name: envoy.access_loggers.stdout
-                typed_config:
-                  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog                
-              route_config:              
-                name: remote_route
-                virtual_hosts:
-                  - name: connect
-                    domains: ["*"]
-                    routes:                      
-                      - match:
-                          connect_matcher: {}
-                        route:
-                          timeout: 10s
-                          idle_timeout: 10s
-                          max_stream_duration:
-                            max_stream_duration: 10s
-
-                          cluster: cluster_http
-                      - match:
-                          prefix: "/"                          
-                        route:
-                          timeout: 10s
-                          idle_timeout: 10s
-                          max_stream_duration:
-                            max_stream_duration: 10s
-                          cluster: cluster_http
-
-              http_filters:
-                - name: envoy.router
-                  typed_config:
-                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-              http2_protocol_options:
-                allow_connect: true
-              upgrade_configs:
-              - upgrade_type: CONNECT-UDP                                   
-
-
-             
+              value: "128.252.0.0"            
+            
   clusters:
-  - name: cluster_0
-    connect_timeout: 5s
-    common_lb_config: 
-      close_connections_on_host_set_change: true
-    typed_extension_protocol_options:
-      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
-        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
-        explicit_http_config:
-          http2_protocol_options: {}
-    load_assignment:
-      cluster_name: cluster_0
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: 192.168.170.131 #ingress
-                port_value: 12000
-          
+         
   - name: cluster_http
     connect_timeout: 5s
     common_lb_config: 
@@ -206,6 +135,17 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: 192.168.1.5 #ingress
-                port_value: 10000
-              
+                address: <Ingress IP Here> 
+                port_value: 10000          
+                
+  - name: cluster_udp
+    connect_timeout: 5s
+    load_assignment:
+      cluster_name: cluster_udp
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: <Ingress IP Here> 
+                port_value: 21000                 

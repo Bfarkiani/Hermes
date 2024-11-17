@@ -23,6 +23,7 @@ static_resources:
               domains:
               - "*"
               routes:
+#user2
               - match:
                   prefix: "/"
                   headers:
@@ -30,38 +31,6 @@ static_resources:
                     exact_match: "user2"         
                   - name: "IPaddress"
                     exact_match: "10.0.0.1"                      
-                route:                            
-                  timeout: 3s
-                  idle_timeout: 3s
-                  max_stream_duration:
-                    max_stream_duration: 3s                          
-                  cluster: server3   
-                  upgrade_configs:
-                  - upgrade_type: CONNECT-UDP
-                    connect_config: {}                 
-              - match:
-                  connect_matcher: {}
-                  headers:
-                  - name: "user"
-                    exact_match: "user2"         
-                  - name: "IPaddress"
-                    exact_match: "10.0.0.1"                    
-                route:
-                  timeout: 3s
-                  idle_timeout: 3s
-                  max_stream_duration:
-                    max_stream_duration: 3s                                          
-                  cluster: server3
-                  upgrade_configs:
-                  - upgrade_type: CONNECT-UDP
-                    connect_config: {}
-              - match:
-                  prefix: "/"
-                  headers:
-                  - name: "user"
-                    exact_match: "user2"         
-                  - name: "IPaddress"
-                    exact_match: "10.0.0.2"                      
                 route:                            
                   timeout: 3s
                   idle_timeout: 3s
@@ -77,19 +46,55 @@ static_resources:
                   - name: "user"
                     exact_match: "user2"         
                   - name: "IPaddress"
+                    exact_match: "10.0.0.1"                    
+                route:
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                          
+                
+                  cluster: server2
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}               
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
+                    exact_match: "10.0.0.2"                      
+                route:                            
+                  timeout: 3s
+                  idle_timeout: 3s
+                  max_stream_duration:
+                    max_stream_duration: 3s                          
+                  cluster: server3   
+                  upgrade_configs:
+                  - upgrade_type: CONNECT-UDP
+                    connect_config: {}                 
+              - match:
+                  connect_matcher: {}
+                  headers:
+                  - name: "user"
+                    exact_match: "user2"         
+                  - name: "IPaddress"
                     exact_match: "10.0.0.2"                    
                 route:
                   timeout: 3s
                   idle_timeout: 3s
                   max_stream_duration:
-                    max_stream_duration: 3s                                          
-                  cluster: server2
+                    max_stream_duration: 3s                          
+                
+                  cluster: server3
                   upgrade_configs:
                   - upgrade_type: CONNECT-UDP
-                    connect_config: {}    
+                    connect_config: {}              
               - match:
                   prefix: "/"
                   headers:
+                  - name: "user"
+                    exact_match: "user2"         
                   - name: "IPaddress"
                     exact_match: "128.252.0.0"                      
                 route:                            
@@ -97,13 +102,15 @@ static_resources:
                   idle_timeout: 3s
                   max_stream_duration:
                     max_stream_duration: 3s                          
-                  cluster: server4  
+                  cluster: server4   
                   upgrade_configs:
                   - upgrade_type: CONNECT-UDP
                     connect_config: {}                 
               - match:
                   connect_matcher: {}
                   headers:
+                  - name: "user"
+                    exact_match: "user2"         
                   - name: "IPaddress"
                     exact_match: "128.252.0.0"                    
                 route:
@@ -115,7 +122,10 @@ static_resources:
                   upgrade_configs:
                   - upgrade_type: CONNECT-UDP
                     connect_config: {}
-                    
+
+
+
+
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
@@ -127,7 +137,27 @@ static_resources:
 
          
   clusters:
-  - name: server3
+    
+
+  - name: server2  #user2 10.0.0.1
+    connect_timeout: 5s
+    common_lb_config: 
+      close_connections_on_host_set_change: true
+    type: LOGICAL_DNS
+    dns_lookup_family: V4_ONLY
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: server2
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                protocol: UDP
+                address: <USER2 Dedicated server>  
+                port_value: 21000         
+                
+  - name: server3  #user1 and 2 10.0.0.2
     connect_timeout: 5s
     common_lb_config: 
       close_connections_on_host_set_change: true
@@ -142,42 +172,23 @@ static_resources:
             address:
               socket_address:
                 protocol: UDP
-                address:  host.docker.internal
-                port_value: 51820         
+                address: <User1 and 2 shared servers>  
+                port_value: 21000                 
 
-
-  - name: server2
+  - name: server4  #user1 and 2 128.252.0.0
     connect_timeout: 5s
     common_lb_config: 
       close_connections_on_host_set_change: true
-    type: STATIC
-    dns_lookup_family: V4_ONLY   
+    type: LOGICAL_DNS
+    dns_lookup_family: V4_ONLY
     lb_policy: ROUND_ROBIN
     load_assignment:
-      cluster_name: server2
+      cluster_name: server3
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
                 protocol: UDP
-                address:  192.168.1.2 
-                port_value: 51820 
-
-  - name: server4
-    connect_timeout: 5s
-    common_lb_config: 
-      close_connections_on_host_set_change: true
-    type: STATIC
-    dns_lookup_family: V4_ONLY   
-    lb_policy: ROUND_ROBIN
-    load_assignment:
-      cluster_name: server4
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                protocol: UDP
-                address:  192.168.1.1 
-                port_value: 51820 
+                address: <128.252.0.0 gateway>  
+                port_value: 21000
