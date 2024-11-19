@@ -7,8 +7,8 @@ This folder contains the configuration files and implementation for the IP Use C
 ## Setup Instructions
 
 ### 1. Update IP Addresses
-- **DB Folder**
-  - In the `update1` and `update2` files, set the relevant IP addresses for the database servers.
+- **Update Folder**
+  - In the `update1` and `update2` folders, set the relevant IP addresses for the servers.
 
 ### 2. Configure the Updater
 - **`main.go`**
