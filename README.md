@@ -1,6 +1,6 @@
 # Hermes: A General-Purpose Proxy-Enabled Networking Architecture
 
-This repository contains the prototype implementation of Hermes use cases presented in the paper [draft](https://arxiv.org/abs/XXXXXXXX). The repository will be updated periodically to include additional use cases.
+This repository contains the prototype implementation of Hermes use cases presented in the paper [draft](https://arxiv.org/abs/2411.13668). The repository will be updated periodically to include additional use cases.
 
 ---
 
